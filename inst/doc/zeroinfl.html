@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Thomas Lumley" />
+
+<meta name="date" content="2020-09-28" />
+
+<title>Zero-inflated Poisson model for complex survey data</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Zero-inflated Poisson model for complex survey data</h1>
+<h4 class="author">Thomas Lumley</h4>
+<h4 class="date">2020-09-28</h4>
+
+
+
+<p>The Zero-Inflated Poisson model is a model for count data with excess zeros. The response distribution is a mixture of a point mass at zero and a Poisson distribution: if <span class="math inline">\(Z\)</span> is Bernoulli with probability <span class="math inline">\(1-p_0\)</span> and <span class="math inline">\(P\)</span> is Poisson with mean <span class="math inline">\(\lambda\)</span>, then <span class="math inline">\(Y=Z+(1-Z)P\)</span> is zero-inflated Poisson. The ZIP is a latent-class model; we can have <span class="math inline">\(Y=0\)</span> either because <span class="math inline">\(Z=0\)</span> ('structural' zeroes) or because <span class="math inline">\(P=0\)</span>. That’s natural in some ecological examples: if you didn’t see any salmon it could be because the area is salmon-free (it’s Eden Park) or because you just randomly didn’t see any. To turn this into a regression model we typically put a logistic regression structure on <span class="math inline">\(Z\)</span> and a Poisson regression structure on <span class="math inline">\(P\)</span>.</p>
+<p>There isn’t (as far as I know) existing software in R for design-based inference in zero-inflated Poisson models, so it’s a good example for the benefits of <code>svyVGAM</code>. The <code>pscl</code> package (Zeileis et al) fits zero-inflated models, and so does <code>VGAM</code>, so we can compare the model fitted with <code>svyVGAM</code> to both of those and to other work-arounds.</p>
+<p>I’ll do an example with data on number of sexual partners, from NHANES 2003-2004. We will look at questions <code>SXQ200</code> and <code>SXQ100</code>: number of male sexual partners. Combining these gives a ‘real’ zero-inflated variable: based on sexual orientation the zeroes would divide into 'never' and 'not yet'.</p>
+<p>Here's how I created the dataset, from two NHANES files. It's <code>data(nhanes_sxq)</code> in the package</p>
+<pre><code>library(foreign)
+setwd(&quot;~/nhanes&quot;)
+demo = read.xport(&quot;demo_c.xpt&quot;)
+sxq = read.xport(&quot;sxq_c.xpt&quot;)
+merged = merge(demo, sxq, by='SEQN')
+merged$total = with(merged, ifelse(RIAGENDR==2, SXQ100+SXQ130, SXQ170+SXQ200))
+merged$total[merged$SXQ020==2] = 0
+merged$total[merged$total&gt;2000] = NA
+merged$age = merged$RIDAGEYR/25
+merged$malepartners=with(merged, ifelse(RIAGENDR==2,SXQ100,SXQ200))
+merged$malepartners[merged$malepartners&gt;200]=NA
+nhanes_sxq&lt;-merged[, c(&quot;SDMVPSU&quot;,&quot;SDMVSTRA&quot;,&quot;WTINT2YR&quot;,&quot;RIDAGEYR&quot;,&quot;RIDRETH1&quot;,&quot;DMDEDUC&quot;,&quot;malepartners&quot;)]</code></pre>
+<p>Start off by loading the packages and setting up a survey design</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(svyVGAM)</code></pre></div>
+<pre><code>## Loading required package: VGAM</code></pre>
+<pre><code>## Loading required package: stats4</code></pre>
+<pre><code>## Loading required package: splines</code></pre>
+<pre><code>## Loading required package: survey</code></pre>
+<pre><code>## Loading required package: grid</code></pre>
+<pre><code>## Loading required package: Matrix</code></pre>
+<pre><code>## Loading required package: survival</code></pre>
+<pre><code>## 
+## Attaching package: 'survey'</code></pre>
+<pre><code>## The following object is masked from 'package:VGAM':
+## 
+##     calibrate</code></pre>
+<pre><code>## The following object is masked from 'package:graphics':
+## 
+##     dotchart</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(pscl)</code></pre></div>
+<pre><code>## Classes and Methods for R developed in the
+## Political Science Computational Laboratory
+## Department of Political Science
+## Stanford University
+## Simon Jackman
+## hurdle and zeroinfl functions by Achim Zeileis</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(nhanes_sxq)
+des =<span class="st"> </span><span class="kw">svydesign</span>(<span class="dt">id=</span><span class="op">~</span>SDMVPSU,<span class="dt">strat=</span><span class="op">~</span>SDMVSTRA,<span class="dt">weights=</span><span class="op">~</span>WTINT2YR, <span class="dt">nest=</span><span class="ot">TRUE</span>, <span class="dt">data=</span>nhanes_sxq)</code></pre></div>
+<p>First, we'll fit the model just ignoring the survey design, using both <code>pscl::zeroinfl</code> and <code>VGAM::vglm</code>. These models use the same variables in a logistic regression for <span class="math inline">\(Z\)</span> and a Poisson regression for <span class="math inline">\(P\)</span>. In <code>VGAM</code> you would make the models different by constraining coefficients to be zero in one of the models; in <code>pscl</code> you would specify different models before and after the <code>|</code>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">unwt =<span class="st"> </span><span class="kw">zeroinfl</span>(malepartners<span class="op">~</span>RIDAGEYR<span class="op">+</span><span class="kw">factor</span>(RIDRETH1)<span class="op">+</span>DMDEDUC<span class="op">|</span>RIDAGEYR<span class="op">+</span><span class="kw">factor</span>(RIDRETH1)<span class="op">+</span>DMDEDUC, <span class="dt">data=</span>nhanes_sxq)
+<span class="kw">summary</span>(unwt)</code></pre></div>
+<pre><code>## 
+## Call:
+## zeroinfl(formula = malepartners ~ RIDAGEYR + factor(RIDRETH1) + DMDEDUC | 
+##     RIDAGEYR + factor(RIDRETH1) + DMDEDUC, data = nhanes_sxq)
+## 
+## Pearson residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.0204 -0.9433 -0.7871  0.1503 29.2567 
+## 
+## Count model coefficients (poisson with log link):
+##                     Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)        1.6666228  0.0506660  32.894  &lt; 2e-16 ***
+## RIDAGEYR          -0.0055102  0.0008969  -6.143 8.08e-10 ***
+## factor(RIDRETH1)2 -0.0394019  0.0779480  -0.505    0.613    
+## factor(RIDRETH1)3  0.6508821  0.0345734  18.826  &lt; 2e-16 ***
+## factor(RIDRETH1)4  0.6675311  0.0365963  18.240  &lt; 2e-16 ***
+## factor(RIDRETH1)5  0.5642954  0.0594928   9.485  &lt; 2e-16 ***
+## DMDEDUC            0.0094256  0.0135180   0.697    0.486    
+## 
+## Zero-inflation model coefficients (binomial with logit link):
+##                    Estimate Std. Error z value Pr(&gt;|z|)   
+## (Intercept)        0.188125   0.187079   1.006  0.31461   
+## RIDAGEYR          -0.002938   0.003629  -0.810  0.41823   
+## factor(RIDRETH1)2 -0.079636   0.242311  -0.329  0.74242   
+## factor(RIDRETH1)3  0.118369   0.116120   1.019  0.30803   
+## factor(RIDRETH1)4  0.143300   0.127764   1.122  0.26203   
+## factor(RIDRETH1)5  0.259515   0.223032   1.164  0.24460   
+## DMDEDUC           -0.148881   0.053337  -2.791  0.00525 **
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Number of iterations in BFGS optimization: 18 
+## Log-likelihood: -9518 on 14 Df</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">vglm</span>(malepartners<span class="op">~</span>RIDAGEYR<span class="op">+</span><span class="kw">factor</span>(RIDRETH1)<span class="op">+</span>DMDEDUC, <span class="kw">zipoisson</span>(), <span class="dt">data =</span> nhanes_sxq, <span class="dt">crit =</span> <span class="st">&quot;coef&quot;</span>)</code></pre></div>
+<pre><code>## 
+## Call:
+## vglm(formula = malepartners ~ RIDAGEYR + factor(RIDRETH1) + DMDEDUC, 
+##     family = zipoisson(), data = nhanes_sxq, crit = &quot;coef&quot;)
+## 
+## 
+## Coefficients:
+##       (Intercept):1       (Intercept):2          RIDAGEYR:1          RIDAGEYR:2 
+##         0.188125349         1.666622759        -0.002937819        -0.005510160 
+## factor(RIDRETH1)2:1 factor(RIDRETH1)2:2 factor(RIDRETH1)3:1 factor(RIDRETH1)3:2 
+##        -0.079635992        -0.039401949         0.118369301         0.650882145 
+## factor(RIDRETH1)4:1 factor(RIDRETH1)4:2 factor(RIDRETH1)5:1 factor(RIDRETH1)5:2 
+##         0.143300364         0.667531080         0.259515415         0.564295398 
+##           DMDEDUC:1           DMDEDUC:2 
+##        -0.148881313         0.009425589 
+## 
+## Degrees of Freedom: 5050 Total; 5036 Residual
+## Log-likelihood: -9517.556</code></pre>
+<div id="re-scaling-the-weights" class="section level3">
+<h3>Re-scaling the weights</h3>
+<p>A traditional work-around for regression models is to rescale the weights to sum to the sample size and then pretend they are precision weights or frequency weights.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">nhanes_sxq<span class="op">$</span>scaledwt&lt;-nhanes_sxq<span class="op">$</span>WTINT2YR<span class="op">/</span><span class="kw">mean</span>(nhanes_sxq<span class="op">$</span>WTINT2YR)
+
+wt=<span class="st"> </span><span class="kw">zeroinfl</span>(malepartners<span class="op">~</span>RIDAGEYR<span class="op">+</span><span class="kw">factor</span>(RIDRETH1)<span class="op">+</span>DMDEDUC<span class="op">|</span>RIDAGEYR<span class="op">+</span><span class="kw">factor</span>(RIDRETH1)<span class="op">+</span>DMDEDUC, <span class="dt">data=</span>nhanes_sxq, <span class="dt">weights=</span>scaledwt)</code></pre></div>
+<pre><code>## Warning in eval(family$initialize): non-integer #successes in a binomial glm!</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(wt)</code></pre></div>
+<pre><code>## 
+## Call:
+## zeroinfl(formula = malepartners ~ RIDAGEYR + factor(RIDRETH1) + DMDEDUC | 
+##     RIDAGEYR + factor(RIDRETH1) + DMDEDUC, data = nhanes_sxq, weights = scaledwt)
+## 
+## Pearson residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.5864 -0.8418 -0.5430  0.1324 31.9106 
+## 
+## Count model coefficients (poisson with log link):
+##                     Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)        1.8340681  0.0614994  29.823  &lt; 2e-16 ***
+## RIDAGEYR          -0.0073881  0.0009059  -8.155 3.49e-16 ***
+## factor(RIDRETH1)2 -0.1073312  0.0853535  -1.257   0.2086    
+## factor(RIDRETH1)3  0.6551367  0.0481679  13.601  &lt; 2e-16 ***
+## factor(RIDRETH1)4  0.6358148  0.0529173  12.015  &lt; 2e-16 ***
+## factor(RIDRETH1)5  0.4774124  0.0666607   7.162 7.96e-13 ***
+## DMDEDUC           -0.0237389  0.0143070  -1.659   0.0971 .  
+## 
+## Zero-inflation model coefficients (binomial with logit link):
+##                    Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)        0.660504   0.214458   3.080 0.002071 ** 
+## RIDAGEYR          -0.007833   0.003673  -2.133 0.032959 *  
+## factor(RIDRETH1)2 -0.116789   0.252451  -0.463 0.643636    
+## factor(RIDRETH1)3  0.101971   0.151531   0.673 0.500987    
+## factor(RIDRETH1)4 -0.160804   0.181429  -0.886 0.375444    
+## factor(RIDRETH1)5  0.106779   0.230339   0.464 0.642954    
+## DMDEDUC           -0.202397   0.057624  -3.512 0.000444 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+## 
+## Number of iterations in BFGS optimization: 18 
+## Log-likelihood: -9766 on 14 Df</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">wtv=<span class="st"> </span><span class="kw">vglm</span>(malepartners<span class="op">~</span>RIDAGEYR<span class="op">+</span><span class="kw">factor</span>(RIDRETH1)<span class="op">+</span>DMDEDUC, <span class="kw">zipoisson</span>(), <span class="dt">data =</span> nhanes_sxq, <span class="dt">crit =</span> <span class="st">&quot;coef&quot;</span>,<span class="dt">weights=</span>scaledwt)
+<span class="kw">summary</span>(wtv)</code></pre></div>
+<pre><code>## 
+## Call:
+## vglm(formula = malepartners ~ RIDAGEYR + factor(RIDRETH1) + DMDEDUC, 
+##     family = zipoisson(), data = nhanes_sxq, weights = scaledwt, 
+##     crit = &quot;coef&quot;)
+## 
+## Pearson residuals:
+##                     Min      1Q    Median         3Q    Max
+## logitlink(pstr0) -1.828 -0.9335 -0.365675  0.8834927  1.852
+## loglink(lambda)  -5.851 -1.2771 -0.002727 -0.0003665 65.774
+## 
+## Coefficients: 
+##                       Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept):1        0.6605042  0.2144354   3.080 0.002069 ** 
+## (Intercept):2        1.8340681  0.0614568  29.843  &lt; 2e-16 ***
+## RIDAGEYR:1          -0.0078333  0.0036726  -2.133 0.032934 *  
+## RIDAGEYR:2          -0.0073881  0.0008995  -8.214  &lt; 2e-16 ***
+## factor(RIDRETH1)2:1 -0.1167894  0.2527278  -0.462 0.643999    
+## factor(RIDRETH1)2:2 -0.1073312  0.0847641  -1.266 0.205430    
+## factor(RIDRETH1)3:1  0.1019712  0.1515002   0.673 0.500899    
+## factor(RIDRETH1)3:2  0.6551367  0.0481359  13.610  &lt; 2e-16 ***
+## factor(RIDRETH1)4:1 -0.1608040  0.1814098  -0.886 0.375395    
+## factor(RIDRETH1)4:2  0.6358147  0.0529738  12.002  &lt; 2e-16 ***
+## factor(RIDRETH1)5:1  0.1067789  0.2303235   0.464 0.642931    
+## factor(RIDRETH1)5:2  0.4774124  0.0663590   7.194 6.27e-13 ***
+## DMDEDUC:1           -0.2023967  0.0576221  -3.512 0.000444 ***
+## DMDEDUC:2           -0.0237389  0.0146964  -1.615 0.106249    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Names of linear predictors: logitlink(pstr0), loglink(lambda)
+## 
+## Log-likelihood: -9765.52 on 5036 degrees of freedom
+## 
+## Number of Fisher scoring iterations: 8 
+## 
+## No Hauck-Donner effect found in any of the estimates</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## repwts
+repdes =<span class="st"> </span><span class="kw">as.svrepdesign</span>(des,<span class="dt">type=</span><span class="st">&quot;Fay&quot;</span>,<span class="dt">fay.rho=</span><span class="fl">0.2</span>)
+rep1 =<span class="st"> </span><span class="kw">withReplicates</span>(repdes, <span class="kw">quote</span>( 
+    <span class="kw">coef</span>(<span class="kw">zeroinfl</span>(malepartners<span class="op">~</span>RIDAGEYR<span class="op">+</span><span class="kw">factor</span>(RIDRETH1)<span class="op">+</span>DMDEDUC<span class="op">|</span>RIDAGEYR<span class="op">+</span><span class="kw">factor</span>(RIDRETH1)<span class="op">+</span>DMDEDUC, <span class="dt">weights=</span>.weights))
+    ))
+rep1</code></pre></div>
+<pre><code>##                              theta     SE
+## count_(Intercept)        1.8335175 0.1350
+## count_RIDAGEYR          -0.0073709 0.0028
+## count_factor(RIDRETH1)2 -0.1071380 0.2471
+## count_factor(RIDRETH1)3  0.6552029 0.1858
+## count_factor(RIDRETH1)4  0.6361156 0.1438
+## count_factor(RIDRETH1)5  0.4769791 0.2501
+## count_DMDEDUC           -0.0238310 0.0797
+## zero_(Intercept)         0.6606269 0.2582
+## zero_RIDAGEYR           -0.0078221 0.0039
+## zero_factor(RIDRETH1)2  -0.1156275 0.2854
+## zero_factor(RIDRETH1)3   0.1015741 0.0984
+## zero_factor(RIDRETH1)4  -0.1620363 0.0859
+## zero_factor(RIDRETH1)5   0.1065392 0.2120
+## zero_DMDEDUC            -0.2025776 0.0586</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">repv =<span class="st"> </span><span class="kw">withReplicates</span>(repdes, <span class="kw">quote</span>( 
+    <span class="kw">coef</span>(<span class="kw">vglm</span>(malepartners<span class="op">~</span>RIDAGEYR<span class="op">+</span><span class="kw">factor</span>(RIDRETH1)<span class="op">+</span>DMDEDUC, <span class="kw">zipoisson</span>(), <span class="dt">data =</span> nhanes_sxq, <span class="dt">crit =</span> <span class="st">&quot;coef&quot;</span>,<span class="dt">weights=</span>.weights))
+    ))
+repv</code></pre></div>
+<pre><code>##                          theta     SE
+## (Intercept):1        0.6605042 0.2582
+## (Intercept):2        1.8340681 0.1350
+## RIDAGEYR:1          -0.0078333 0.0039
+## RIDAGEYR:2          -0.0073881 0.0028
+## factor(RIDRETH1)2:1 -0.1167894 0.2854
+## factor(RIDRETH1)2:2 -0.1073312 0.2471
+## factor(RIDRETH1)3:1  0.1019712 0.0983
+## factor(RIDRETH1)3:2  0.6551367 0.1857
+## factor(RIDRETH1)4:1 -0.1608040 0.0859
+## factor(RIDRETH1)4:2  0.6358147 0.1438
+## factor(RIDRETH1)5:1  0.1067789 0.2120
+## factor(RIDRETH1)5:2  0.4774124 0.2501
+## DMDEDUC:1           -0.2023967 0.0586
+## DMDEDUC:2           -0.0237389 0.0797</code></pre>
+</div>
+<div id="svymle" class="section level3">
+<h3>svymle</h3>
+<p>Another way to fit the model using just the <code>survey</code> package is with <code>svymle</code>. This takes the log-likelihood and its derivative as arguments, and adds linear predictors to some or all of those arguments. That is, we specify the log-likelihood in terms of the Bernoulli parameter <span class="math inline">\(p_0\)</span> and the Poisson mean <span class="math inline">\(\lambda\)</span> -- actually <span class="math inline">\(\mathrm{logit} p_0\)</span> and <span class="math inline">\(\eta=\log\lambda\)</span>, and also give the derivative with respect to these two parameters. The software does the necessary additional work to put linear predictors on the parameters and give us the zero-inflated model. In fact, <code>svymle</code> is very similar in underlying approach to <code>vglm</code>; the difference is that <code>vglm</code> comes with a large collection of predefined models.</p>
+<p>In defining the loglikelihood I'm going to take advantage of the Poisson pmf being available in R. Let's call it <span class="math inline">\(\digamma(y,\lambda)\)</span>. The loglikelihood is <span class="math display">\[\ell(y; \mu,p_0)=\log\left(p_0\{y==0\}+(1-p)\digamma(y,\mu)\right)\]</span> only we want it in terms of <span class="math inline">\(\mathrm{logit} p_0\)</span> and <span class="math inline">\(\eta=\log \lambda\)</span></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">loglike =<span class="st"> </span><span class="cf">function</span>(y,eta,logitp){
+    mu =<span class="st"> </span><span class="kw">exp</span>(eta)
+    p =<span class="st"> </span><span class="kw">exp</span>(logitp)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw">exp</span>(logitp))
+    <span class="kw">log</span>(p<span class="op">*</span>(y<span class="op">==</span><span class="dv">0</span>)<span class="op">+</span>(<span class="dv">1</span><span class="op">-</span>p)<span class="op">*</span><span class="kw">dpois</span>(y,mu))
+}</code></pre></div>
+<p>We also need the derivatives with respect to <span class="math inline">\(\mathrm{logit} p_0\)</span> and <span class="math inline">\(\eta=\log \lambda\)</span></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">dlogitp =<span class="st"> </span><span class="cf">function</span>(y,eta,logitp){
+    mu =<span class="st"> </span><span class="kw">exp</span>(eta)
+    p =<span class="st"> </span><span class="kw">exp</span>(logitp)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw">exp</span>(logitp))
+    dexpit =<span class="st"> </span>p<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span>p)<span class="op">^</span><span class="dv">2</span>
+    num =<span class="st"> </span>dexpit<span class="op">*</span>(y<span class="op">==</span><span class="dv">0</span>)<span class="op">-</span>dexpit<span class="op">*</span><span class="kw">dpois</span>(y,mu)
+    denom =<span class="st"> </span>p<span class="op">*</span>(y<span class="op">==</span><span class="dv">0</span>)<span class="op">+</span>(<span class="dv">1</span><span class="op">-</span>p)<span class="op">*</span><span class="kw">dpois</span>(y,mu)
+    num<span class="op">/</span>denom
+    }   
+    
+deta =<span class="st"> </span><span class="cf">function</span>(y,eta,logitp){
+    mu =<span class="st"> </span><span class="kw">exp</span>(eta)
+    p =<span class="st"> </span><span class="kw">exp</span>(logitp)<span class="op">/</span>(<span class="dv">1</span><span class="op">+</span><span class="kw">exp</span>(logitp))
+    dmutoy =<span class="st"> </span><span class="dv">0</span><span class="op">*</span>y
+    dmutoy[y<span class="op">&gt;</span><span class="dv">0</span>] =<span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span>mu[y<span class="op">&gt;</span><span class="dv">0</span>])<span class="op">*</span>mu[y<span class="op">&gt;</span><span class="dv">0</span>]<span class="op">^</span>(y[y<span class="op">&gt;</span><span class="dv">0</span>]<span class="op">-</span><span class="dv">1</span>)<span class="op">/</span><span class="kw">factorial</span>(y[y<span class="op">&gt;</span><span class="dv">0</span>]<span class="op">-</span><span class="dv">1</span>)
+    num =<span class="st"> </span>(<span class="dv">1</span><span class="op">-</span>p)<span class="op">*</span>(<span class="op">-</span><span class="kw">dpois</span>(y,mu)<span class="op">+</span>dmutoy)
+    denom =<span class="st"> </span>p<span class="op">*</span>(y<span class="op">==</span><span class="dv">0</span>)<span class="op">+</span>(<span class="dv">1</span><span class="op">-</span>p)<span class="op">*</span><span class="kw">dpois</span>(y,mu)
+    num<span class="op">/</span>denom
+    }   
+
+score =<span class="st"> </span><span class="cf">function</span>(y,eta,logitp) <span class="kw">cbind</span>(<span class="kw">deta</span>(y,eta,logitp), <span class="kw">dlogitp</span>(y,eta,logitp))</code></pre></div>
+<p>And now we call <code>svymle</code> giving the linear predictors for both parameters. One of the formulas needs to include the response variable <span class="math inline">\(Y\)</span>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">nlmfit =<span class="st"> </span><span class="kw">svymle</span>(<span class="dt">loglike=</span>loglike, <span class="dt">grad=</span>score, <span class="dt">design=</span>des, 
+        <span class="dt">formulas=</span><span class="kw">list</span>(<span class="dt">eta=</span>malepartners<span class="op">~</span>RIDAGEYR <span class="op">+</span><span class="st"> </span><span class="kw">factor</span>(RIDRETH1) <span class="op">+</span><span class="st"> </span>DMDEDUC, 
+        <span class="dt">logitp=</span><span class="op">~</span>RIDAGEYR <span class="op">+</span><span class="st"> </span><span class="kw">factor</span>(RIDRETH1) <span class="op">+</span><span class="st"> </span>DMDEDUC),
+      <span class="dt">start=</span><span class="kw">coef</span>(unwt), <span class="dt">na.action=</span><span class="st">&quot;na.omit&quot;</span>,<span class="dt">method=</span><span class="st">&quot;BFGS&quot;</span>)
+
+<span class="kw">summary</span>(nlmfit)</code></pre></div>
+<pre><code>## Survey-sampled mle: 
+## svymle(loglike = loglike, gradient = score, design = des, formulas = list(eta = malepartners ~ 
+##     RIDAGEYR + factor(RIDRETH1) + DMDEDUC, logitp = ~RIDAGEYR + 
+##     factor(RIDRETH1) + DMDEDUC), start = coef(unwt), na.action = &quot;na.omit&quot;, 
+##     method = &quot;BFGS&quot;)
+##                                  Coef          SE p.value
+## eta.(Intercept)           1.826825789 0.154214277 &lt; 0.001
+## eta.RIDAGEYR             -0.007800690 0.003014997 0.00967
+## eta.factor(RIDRETH1)2    -0.119694280 0.235192596 0.61081
+## eta.factor(RIDRETH1)3     0.639831600 0.165176912 &lt; 0.001
+## eta.factor(RIDRETH1)4     0.615167292 0.117750580 &lt; 0.001
+## eta.factor(RIDRETH1)5     0.465555942 0.213462405 0.02919
+## eta.DMDEDUC              -0.008130865 0.072679440 0.91092
+## logitp.(Intercept)        0.578310169 0.246782567 0.01911
+## logitp.RIDAGEYR          -0.006077533 0.004017016 0.13029
+## logitp.factor(RIDRETH1)2 -0.033440316 0.280701007 0.90517
+## logitp.factor(RIDRETH1)3  0.124435365 0.095140203 0.19090
+## logitp.factor(RIDRETH1)4 -0.151762524 0.086322705 0.07873
+## logitp.factor(RIDRETH1)5  0.119530077 0.209380275 0.56808
+## logitp.DMDEDUC           -0.209112828 0.053553191 &lt; 0.001
+## Stratified 1 - level Cluster Sampling design (with replacement)
+## With (30) clusters.
+## svydesign(id = ~SDMVPSU, strat = ~SDMVSTRA, weights = ~WTINT2YR, 
+##     nest = TRUE, data = nhanes_sxq)</code></pre>
+</div>
+<div id="svyvgam" class="section level3">
+<h3>svyVGAM</h3>
+<p>Finally, we use <code>svy_vglm</code>, with variances by linearisation</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(svyVGAM)
+<span class="kw">svy_vglm</span>(malepartners<span class="op">~</span>RIDAGEYR<span class="op">+</span><span class="kw">factor</span>(RIDRETH1)<span class="op">+</span>DMDEDUC, <span class="kw">zipoisson</span>(), <span class="dt">design=</span>des, <span class="dt">crit =</span> <span class="st">&quot;coef&quot;</span>)</code></pre></div>
+<pre><code>## Stratified 1 - level Cluster Sampling design (with replacement)
+## With (30) clusters.
+## svydesign(id = ~SDMVPSU, strat = ~SDMVSTRA, weights = ~WTINT2YR, 
+##     nest = TRUE, data = nhanes_sxq)
+## 
+## Call:
+## vglm(formula = formula, family = family, data = surveydata, weights = .survey.prob.weights, 
+##     crit = &quot;coef&quot;)
+## 
+## 
+## Coefficients:
+##       (Intercept):1       (Intercept):2          RIDAGEYR:1          RIDAGEYR:2 
+##         0.660504243         1.834068104        -0.007833317        -0.007388071 
+## factor(RIDRETH1)2:1 factor(RIDRETH1)2:2 factor(RIDRETH1)3:1 factor(RIDRETH1)3:2 
+##        -0.116789371        -0.107331190         0.101971159         0.655136725 
+## factor(RIDRETH1)4:1 factor(RIDRETH1)4:2 factor(RIDRETH1)5:1 factor(RIDRETH1)5:2 
+##        -0.160804047         0.635814748         0.106778915         0.477412443 
+##           DMDEDUC:1           DMDEDUC:2 
+##        -0.202396659        -0.023738881 
+## 
+## Degrees of Freedom: 5050 Total; 5036 Residual
+## Log-likelihood: -493703966</code></pre>
+<p>and by replicate weights</p>
+<pre><code>svy_vglm(malepartners~RIDAGEYR+factor(RIDRETH1)+DMDEDUC, zipoisson(), design=repdes, crit = &quot;coef&quot;)</code></pre>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
