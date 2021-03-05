@@ -33,6 +33,7 @@ repv = withReplicates(repdes, quote(
 repv
 
 ## -----------------------------------------------------------------------------
+## svymle
 loglike = function(y,eta,logitp){
     mu = exp(eta)
     p = exp(logitp)/(1+exp(logitp))
@@ -70,6 +71,10 @@ nlmfit = svymle(loglike=loglike, grad=score, design=des,
 summary(nlmfit)
 
 ## -----------------------------------------------------------------------------
+## svy_vgam
 library(svyVGAM)
+
 svy_vglm(malepartners~RIDAGEYR+factor(RIDRETH1)+DMDEDUC, zipoisson(), design=des, crit = "coef")
+
+svy_vglm(malepartners~RIDAGEYR+factor(RIDRETH1)+DMDEDUC, zipoisson(), design=repdes, crit = "coef")
 
